@@ -1,7 +1,7 @@
 [project]
 name = "subprocess-tee"
 version = "0.1.0"
-description = "A subprocess replacement with tee support."
+description = "A subprocess replacement with tee support for sync or async contexts."
 authors = [
     {name = "Elias Gabriel",email = "me@eliasfgabriel.com"},
 ]
