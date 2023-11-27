@@ -1,0 +1,28 @@
+[project]
+name = "subprocess-tee"
+version = "0.1.0"
+description = "A subprocess replacement with tee support."
+authors = [
+    {name = "Elias Gabriel",email = "me@eliasfgabriel.com"},
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "BSD-3-Clause"}
+
+dependencies = []
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=7.4.3",
+]
+
+[tool.pytest.ini_options]
+addopts = "-vv"
+testpaths = ["tests"]
+
+[tool.pyright]
+ignore = [ "tests" ]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
