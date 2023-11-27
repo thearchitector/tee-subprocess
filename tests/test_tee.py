@@ -60,7 +60,3 @@ def test_run(tmp_path, aio, shell, cmd, kwargs, captured, teed):
     if tee:
         assert kwargs["stdout"].getvalue() == teed
         kwargs["stdout"].close()
-
-
-def test_manual():
-    breakpoint()
