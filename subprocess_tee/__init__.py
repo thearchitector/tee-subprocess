@@ -4,7 +4,6 @@ import asyncio
 import subprocess
 import sys
 from asyncio import subprocess as aiosubprocess
-from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
@@ -35,7 +34,7 @@ async def _tee_stream(
     stream: StreamReader, text: bool, should_capture: bool, sink: IOSink
 ) -> Optional[bytes]:
     """
-    Read the stream line by line, outputting to the sink if provided while appending to the tee buffer. Once EOF is found (the process has terminated), return the final
+    Read the stream line by line, outputting to the sink if provided while appending to the capture buffer. Once EOF is found (the process has terminated), return the final
     coalesced buffer.
     """
     stdio: List[bytes] = []
@@ -82,6 +81,7 @@ def _coerce_stdio(stdio: Union[IOSink, int], text: bool) -> IOSink:
 
 async def _target(
     cmd: Command,
+    tee: bool = True,
     shell: bool = False,
     capture_output: bool = False,
     text: bool = False,
@@ -92,10 +92,14 @@ async def _target(
     then run the command in the provided subprocess while tee-ing the output into the
     configured stdout and stderr sink.
     """
-    stdout: IOSink = sys.stdout if text else sys.stdout.buffer
-    stderr: IOSink = sys.stderr if text else sys.stderr.buffer
-    out_sink: IOSink = _coerce_stdio(kwargs.pop("stdout", stdout), text)
-    err_sink: IOSink = _coerce_stdio(kwargs.pop("stderr", stderr), text)
+    out_sink: IOSink = None
+    err_sink: IOSink = None
+    if tee:
+        # if tee (default), we need to coerce the tee destinations to proper writables
+        stdout = sys.stdout if text else sys.stdout.buffer
+        stderr = sys.stderr if text else sys.stderr.buffer
+        out_sink = _coerce_stdio(kwargs.pop("stdout", stdout), text)
+        err_sink = _coerce_stdio(kwargs.pop("stderr", stderr), text)
 
     process: Process
     if not shell:
@@ -159,26 +163,22 @@ async def _target(
 
 def run(
     args: Command,
-    tee: bool = True,
-    **popen_kwargs: Any,
-) -> CompletedSubprocess:
+    **kwargs: Any,
+) -> Union[CompletedSubprocess, Awaitable[CompletedSubprocess]]:
     """
     Run the command described by args. Wait for command to complete, then return
     a CompletedProcess instance. If tee is True (the default), the command output will
     be captured in addition to printing to stdout and stderr.
 
     Also by default, runs not in shell, with no capture (tee only), and in binary mode.
+
+    If run within an async context, returns a coroutine instead that must be awaited.
     """
-    if not tee:
-        return subprocess.run(args, **popen_kwargs)  # type: ignore
-
-    prog: Awaitable[CompletedSubprocess] = _target(args, **popen_kwargs)
-
+    prog: Awaitable[CompletedSubprocess] = _target(args, **kwargs)
     try:
         # check if there is an event loop running. if there is, run in another thread
         asyncio.get_running_loop()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            return executor.submit(asyncio.run, prog).result()
+        return prog
     except RuntimeError:
         # otherwise, just run in this one directly
         return asyncio.run(prog)

@@ -38,29 +38,29 @@ CMD_S = " ".join(CMD)
     ),
 )
 def test_run(tmp_path, aio, shell, cmd, kwargs, captured, teed):
-    def _test():
-        nonlocal kwargs
-        kwargs = dict(**kwargs, shell=shell)
-        tee = kwargs.pop("tee", True)
-        process = run(cmd, **kwargs)
+    kwargs = dict(**kwargs, shell=shell)
+    tee = kwargs.pop("tee", True)
+    process = run(cmd, **kwargs)
 
-        if tee:
-            kwargs["stdout"] = StringIO() if kwargs.get("text") else BytesIO()
-        tprocess = run_tee(cmd, tee=tee, **kwargs)
-
-        assert tprocess.stdout == captured
-        assert process.stdout == tprocess.stdout
-
-        if tee:
-            assert kwargs["stdout"].getvalue() == teed
-            kwargs["stdout"].close()
+    if tee:
+        kwargs["stdout"] = StringIO() if kwargs.get("text") else BytesIO()
 
     if aio:
 
         async def _():
-            _test()
+            return await run_tee(cmd, tee=tee, **kwargs)
 
-        asyncio.run(_())
-
+        tprocess = asyncio.run(_())
     else:
-        _test()
+        tprocess = run_tee(cmd, tee=tee, **kwargs)
+
+    assert tprocess.stdout == captured
+    assert process.stdout == tprocess.stdout
+
+    if tee:
+        assert kwargs["stdout"].getvalue() == teed
+        kwargs["stdout"].close()
+
+
+def test_manual():
+    breakpoint()
