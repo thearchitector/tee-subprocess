@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import shlex
 import subprocess
 import sys
+import warnings
 from asyncio import subprocess as aiosubprocess
 from typing import TYPE_CHECKING, cast
 
@@ -34,7 +37,8 @@ async def _tee_stream(
     stream: StreamReader, text: bool, should_capture: bool, sink: IOSink
 ) -> Optional[bytes]:
     """
-    Read the stream line by line, outputting to the sink if provided while appending to the capture buffer. Once EOF is found (the process has terminated), return the final
+    Read the stream line by line, outputting to the sink if provided while appending to
+    the capture buffer. Once EOF is found (the process has terminated), return the final
     coalesced buffer.
     """
     stdio: List[bytes] = []
@@ -85,6 +89,7 @@ async def _target(
     shell: bool = False,
     capture_output: bool = False,
     text: bool = False,
+    check: bool = False,
     **kwargs: Any,
 ) -> CompletedSubprocess:
     """
@@ -106,7 +111,13 @@ async def _target(
         # if not shell, convert the command into a program + args
         _tcmd: Tuple[str, ...]
         if isinstance(cmd, str):
-            _tcmd = tuple(cmd.split(" "))
+            warnings.warn(
+                "Due to platform variance, single string commands may not work as"
+                " intended. It is recommended to instead explicitly wrap your command"
+                " in list/tuple, or enable shell mode with `shell=True`."
+            )
+            posix: bool = os.name == "posix"
+            _tcmd = tuple(shlex.split(cmd, posix=posix))
         else:
             _tcmd = tuple(cmd)
 
@@ -124,7 +135,12 @@ async def _target(
         # if in a shell, combine the args into a single command string
         _scmd: str
         if not isinstance(cmd, str):
-            _scmd = " ".join(cmd)
+            warnings.warn(
+                "Due to platform variance, list/tuple-based commands may not work as"
+                " intended. It is recommended to instead explicitly pass your command"
+                " as a string, or disable shell mode with `shell=False`."
+            )
+            _scmd = shlex.join(cmd)
         else:
             _scmd = cmd
 
@@ -146,12 +162,23 @@ async def _target(
     retcode: int = cast(int, process.returncode)
 
     if text:
+        output: Optional[str] = out.decode() if out else None
+        error: Optional[str] = err.decode() if err else None
+
+        if check and retcode != 0:
+            raise subprocess.CalledProcessError(
+                retcode, cmd, output=output, stderr=error
+            )
+
         return subprocess.CompletedProcess(
             cmd,
             returncode=retcode,
             stdout=out.decode() if out else None,
             stderr=err.decode() if err else None,
         )
+
+    if check and retcode != 0:
+        raise subprocess.CalledProcessError(retcode, cmd, output=out, stderr=err)
 
     return subprocess.CompletedProcess(
         cmd,

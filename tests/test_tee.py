@@ -1,4 +1,5 @@
 import asyncio
+import platform
 from io import BytesIO, StringIO
 from subprocess import run
 
@@ -6,11 +7,13 @@ import pytest
 
 from subprocess_tee import run as run_tee
 
-CMD = ["python", "-c", "print('hi',end='')"]
+CMD = ["python", "--version"]
 CMD_S = " ".join(CMD)
+OUTPUT = f"Python {platform.python_version()}"
+OUTPUTB = OUTPUT.encode()
 
 
-@pytest.mark.parametrize("aio", (False, True), ids=["async", "sync"])
+@pytest.mark.parametrize("aio", (False, True), ids=["sync", "async"])
 @pytest.mark.parametrize("shell", (False, True), ids=["direct", "in-shell"])
 @pytest.mark.parametrize("cmd", (CMD, CMD_S), ids=["as-list", "as-str"])
 @pytest.mark.parametrize(
@@ -18,14 +21,14 @@ CMD_S = " ".join(CMD)
     (
         # default behaviors are same as non-tee behaviors
         (dict(tee=False), None, ""),
-        (dict(tee=False, capture_output=True), b"hi", ""),
-        (dict(tee=False, text=True, capture_output=True), "hi", ""),
+        (dict(tee=False, capture_output=True), OUTPUTB, ""),
+        (dict(tee=False, text=True, capture_output=True), OUTPUT, ""),
         # no capture, but tee (same as stdout as IO)
-        (dict(), None, b"hi"),
-        (dict(text=True), None, "hi"),
+        (dict(), None, OUTPUTB),
+        (dict(text=True), None, OUTPUT),
         # capture and tee
-        (dict(capture_output=True), b"hi", b"hi"),
-        (dict(text=True, capture_output=True), "hi", "hi"),
+        (dict(capture_output=True), OUTPUTB, OUTPUTB),
+        (dict(text=True, capture_output=True), OUTPUT, OUTPUT),
     ),
     ids=(
         "no-tee",
@@ -54,9 +57,11 @@ def test_run(tmp_path, aio, shell, cmd, kwargs, captured, teed):
     else:
         tprocess = run_tee(cmd, tee=tee, **kwargs)
 
-    assert tprocess.stdout == captured
-    assert process.stdout == tprocess.stdout
+    pout = process.stdout.strip() if process.stdout else None
+    tout = tprocess.stdout.strip() if tprocess.stdout else None
+    assert tout == captured
+    assert pout == tout
 
     if tee:
-        assert kwargs["stdout"].getvalue() == teed
+        assert kwargs["stdout"].getvalue().strip() == teed
         kwargs["stdout"].close()
