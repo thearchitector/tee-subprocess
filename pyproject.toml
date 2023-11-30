@@ -24,7 +24,7 @@ testpaths = ["tests"]
 ignore = [ "tests" ]
 
 [tool.ruff]
-extend-select = ["I", "ASYNC"]
+extend-select = ["I", "B", "ASYNC"]
 
 [build-system]
 requires = ["pdm-backend"]

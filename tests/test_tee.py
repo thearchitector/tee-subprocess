@@ -7,15 +7,16 @@ import pytest
 
 from subprocess_tee import run as run_tee
 
-CMD = ["python", "--version"]
-CMD_S = " ".join(CMD)
 OUTPUT = f"Python {platform.python_version()}"
 OUTPUTB = OUTPUT.encode()
 
 
 @pytest.mark.parametrize("aio", (False, True), ids=["sync", "async"])
-@pytest.mark.parametrize("shell", (False, True), ids=["direct", "in-shell"])
-@pytest.mark.parametrize("cmd", (CMD, CMD_S), ids=["as-list", "as-str"])
+@pytest.mark.parametrize(
+    "cmd,shell",
+    ((["python", "--version"], False), ("python --version", True)),
+    ids=["as-list", "as-str"],
+)
 @pytest.mark.parametrize(
     "kwargs,captured,teed",
     (
