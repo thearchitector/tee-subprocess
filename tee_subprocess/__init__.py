@@ -7,14 +7,13 @@ import subprocess
 import sys
 import warnings
 from asyncio import subprocess as aiosubprocess
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Coroutine, cast
 
 if TYPE_CHECKING:
     from asyncio import StreamReader
     from asyncio.subprocess import Process
     from typing import (
         Any,
-        Awaitable,
         BinaryIO,
         List,
         Optional,
@@ -114,7 +113,8 @@ async def _target(
             warnings.warn(
                 "Due to platform variance, single string commands may not work as"
                 " intended. It is recommended to instead explicitly wrap your command"
-                " in list/tuple, or enable shell mode with `shell=True`."
+                " in list/tuple, or enable shell mode with `shell=True`.",
+                stacklevel=2,
             )
             posix: bool = os.name == "posix"
             _tcmd = tuple(shlex.split(cmd, posix=posix))
@@ -138,7 +138,8 @@ async def _target(
             warnings.warn(
                 "Due to platform variance, list/tuple-based commands may not work as"
                 " intended. It is recommended to instead explicitly pass your command"
-                " as a string, or disable shell mode with `shell=False`."
+                " as a string, or disable shell mode with `shell=False`.",
+                stacklevel=2,
             )
             _scmd = shlex.join(cmd)
         else:
@@ -191,7 +192,7 @@ async def _target(
 def run(
     args: Command,
     **kwargs: Any,
-) -> Union[CompletedSubprocess, Awaitable[CompletedSubprocess]]:
+) -> Union[CompletedSubprocess, Coroutine[None, None, CompletedSubprocess]]:
     """
     Run the command described by args. Wait for command to complete, then return
     a CompletedProcess instance. If tee is True (the default), the command output will
@@ -201,7 +202,7 @@ def run(
 
     If run within an async context, returns a coroutine instead that must be awaited.
     """
-    prog: Awaitable[CompletedSubprocess] = _target(args, **kwargs)
+    prog: Coroutine[None, None, CompletedSubprocess] = _target(args, **kwargs)
     try:
         # check if there is an event loop running. if there is, run in another thread
         asyncio.get_running_loop()

@@ -5,7 +5,7 @@ from subprocess import run
 
 import pytest
 
-from subprocess_tee import run as run_tee
+from tee_subprocess import run as run_tee
 
 OUTPUT = f"Python {platform.python_version()}"
 OUTPUTB = OUTPUT.encode()

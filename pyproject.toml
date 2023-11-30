@@ -1,7 +1,7 @@
 [project]
-name = "subprocess-tee"
+name = "tee-subprocess"
 version = "0.1.0"
-description = "A subprocess replacement with tee support for sync or async contexts."
+description = "A subprocess replacement with tee support for both synchronous and asynchronous contexts."
 authors = [
     {name = "Elias Gabriel",email = "me@eliasfgabriel.com"},
 ]
@@ -19,6 +19,9 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-vv"
 testpaths = ["tests"]
+
+[tool.mypy]
+strict = true
 
 [tool.pyright]
 ignore = [ "tests" ]
