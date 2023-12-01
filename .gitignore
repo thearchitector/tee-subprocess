@@ -1,6 +1,10 @@
 __pycache__
 .pytest_cache
+.mypy_cache
+.ruff_cache
 
 .venv
 .pdm-python
 .pdm-build
+
+dist
