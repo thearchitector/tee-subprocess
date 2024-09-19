@@ -18,22 +18,8 @@ OUTPUTB = OUTPUT.encode()
     "cmd,shell",
     (
         (["python", "--version"], False),
-        pytest.param(
-            [b"python", b"--version"],
-            False,
-            marks=pytest.mark.xfail(
-                condition=platform.system() == "Windows",
-                reason="Byte arguments are not supported on Windows",
-            ),
-        ),
-        pytest.param(
-            [b"python", "--version"],
-            False,
-            marks=pytest.mark.xfail(
-                condition=platform.system() == "Windows",
-                reason="Byte arguments are not supported on Windows",
-            ),
-        ),
+        ([b"python", b"--version"], False),
+        ([b"python", "--version"], False),
         ([Path(sys.executable).resolve(), "--version"], False),
         ("python --version", True),
         pytest.param(
@@ -41,7 +27,7 @@ OUTPUTB = OUTPUT.encode()
             True,
             marks=pytest.mark.xfail(
                 condition=platform.system() == "Windows",
-                reason="Byte arguments are not supported on Windows",
+                reason="Plain byte arguments are not supported on Windows",
             ),
         ),
     ),
