@@ -18,11 +18,32 @@ OUTPUTB = OUTPUT.encode()
     "cmd,shell",
     (
         (["python", "--version"], False),
-        ([b"python", b"--version"], False),
-        ([b"python", "--version"], False),
+        pytest.param(
+            [b"python", b"--version"],
+            False,
+            marks=pytest.mark.xfail(
+                condition=platform.system() == "Windows",
+                reason="Byte arguments are not supported on Windows",
+            ),
+        ),
+        pytest.param(
+            [b"python", "--version"],
+            False,
+            marks=pytest.mark.xfail(
+                condition=platform.system() == "Windows",
+                reason="Byte arguments are not supported on Windows",
+            ),
+        ),
         ([Path(sys.executable).resolve(), "--version"], False),
         ("python --version", True),
-        (b"python --version", True),
+        pytest.param(
+            b"python --version",
+            True,
+            marks=pytest.mark.xfail(
+                condition=platform.system() == "Windows",
+                reason="Byte arguments are not supported on Windows",
+            ),
+        ),
     ),
     ids=["str-list", "bytes-list", "mixed-list", "list-with-pathlike", "str", "bytes"],
 )
