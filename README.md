@@ -24,7 +24,7 @@ Changing `stdout` and `stderr` changes the location to which the `tee` occurs. Y
 
 ### Async
 
-Internally, `tee_subprocess` utilizes `asyncio` to concurrently output and capture the subprocess logs. If an event loop is already running, `run` will return an awaitable coroutine. Otherwise, it will call `asyncio.run` for you. Practically, this means you can just treat `run` as a coroutine if you're in an async content; if you're not, just call it synchronously.
+Internally, `tee_subprocess` utilizes `asyncio` to concurrently output and capture the subprocess logs. If an event loop is already running, `run` will return an awaitable coroutine. Otherwise, it will call `asyncio.run` for you. Practically, this means you can just treat `run` as a coroutine if you're in an async context.
 
 ```python
 async def main():
@@ -36,6 +36,12 @@ async def main():
 asyncio.run(main())
 ```
 
+### Static Typing
+
+I do my best to provide a logical static function typing for any permitted invocation style. Mypy _should_ complain about missing or invalid overloads if you attempt to use a combination of arguments with undefined behavior (like supplying `text=True` while also providing a `BytesIO` as `stdout`, or supplying a `PathLike` argument while `shell=True`).
+
+The one fairly large exception to this is `await run(...)` vs `run(...)`. For now, `run` returns a union between a complete process and a coroutine due to the runtime-check for an asyncio context. As a result, you'll have to `cast` the `run(...)` call to either an awaitable or a `CompletedProcess` depending on your specific use. The API may change in the future to avoid this problem.
+
 ## Alternatives
 
 [subprocess-tee](https://github.com/pycontribs/subprocess-tee), the motivation for this library, has the same objective but fails to accommodate asynchronous applications and non-shell invocations. This library supports asynchronous contexts as well as direct, non-shell, program execution ("list-style" vs. "shell-style").
@@ -43,4 +49,4 @@ asyncio.run(main())
 ## License
 
 MIT License
-Copyright (c) 2023 Elias Gabriel
+Copyright (c) 2023-2024 Elias Gabriel

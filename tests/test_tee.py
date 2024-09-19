@@ -1,6 +1,8 @@
 import asyncio
 import platform
+import sys
 from io import BytesIO, StringIO
+from pathlib import Path
 from subprocess import run
 
 import pytest
@@ -14,8 +16,15 @@ OUTPUTB = OUTPUT.encode()
 @pytest.mark.parametrize("aio", (False, True), ids=["sync", "async"])
 @pytest.mark.parametrize(
     "cmd,shell",
-    ((["python", "--version"], False), ("python --version", True)),
-    ids=["as-list", "as-str"],
+    (
+        (["python", "--version"], False),
+        ([b"python", b"--version"], False),
+        ([b"python", "--version"], False),
+        ([Path(sys.executable).resolve(), "--version"], False),
+        ("python --version", True),
+        (b"python --version", True),
+    ),
+    ids=["str-list", "bytes-list", "mixed-list", "list-with-pathlike", "str", "bytes"],
 )
 @pytest.mark.parametrize(
     "kwargs,captured,teed",
