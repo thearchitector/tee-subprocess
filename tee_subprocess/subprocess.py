@@ -38,16 +38,6 @@ if TYPE_CHECKING:  # pragma: no cover
         subprocess.CompletedProcess[str], subprocess.CompletedProcess[bytes]
     ]
 
-    # @overload
-    # async def _tee_stream(
-    #     stream: StreamReader, text: Literal[True], should_capture: bool, sink: TextIO
-    # ) -> Optional[bytes]: ...
-
-    # @overload
-    # async def _tee_stream(
-    #     stream: StreamReader, text: Literal[False], should_capture: bool, sink: BinaryIO
-    # ) -> Optional[bytes]: ...
-
 
 async def _tee_stream(
     stream: StreamReader, should_capture: bool, sink: IOSink
@@ -132,6 +122,7 @@ async def _target(
     stderr: Optional[Union[IOSink, int]] = None,
     text: bool = False,
     check: bool = False,
+    timeout: Optional[float] = None,
     **kwargs: Any,
 ) -> CompletedSubprocess:
     """
@@ -205,12 +196,23 @@ async def _target(
             **kwargs,
         )
 
-    out, err = await asyncio.gather(
-        *(
-            _tee_stream(cast("StreamReader", process.stdout), capture_output, out_sink),
-            _tee_stream(cast("StreamReader", process.stderr), capture_output, err_sink),
+    try:
+        out, err = await asyncio.wait_for(
+            asyncio.gather(
+                *(
+                    _tee_stream(
+                        cast("StreamReader", process.stdout), capture_output, out_sink
+                    ),
+                    _tee_stream(
+                        cast("StreamReader", process.stderr), capture_output, err_sink
+                    ),
+                )
+            ),
+            timeout=timeout,
         )
-    )
+    except asyncio.TimeoutError as e:
+        raise subprocess.TimeoutExpired(cmd, cast(float, timeout)) from e
+
     await process.communicate()
     retcode: int = cast(int, process.returncode)
 
@@ -237,7 +239,7 @@ async def _target(
 
 
 if TYPE_CHECKING:  # pragma: no cover
-
+    # shell, text
     @overload
     def run(
         args: Command[ShellArg],
@@ -251,6 +253,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Coroutine[None, None, subprocess.CompletedProcess[str]],
     ]: ...
 
+    # shell, binary
     @overload
     def run(
         args: Command[ShellArg],
@@ -264,6 +267,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Coroutine[None, None, subprocess.CompletedProcess[bytes]],
     ]: ...
 
+    # exec, text
     @overload
     def run(
         args: Command[ExecArg],
@@ -277,6 +281,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Coroutine[None, None, subprocess.CompletedProcess[str]],
     ]: ...
 
+    # exec, binary
     @overload
     def run(
         args: Command[ExecArg],
