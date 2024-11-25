@@ -3,7 +3,7 @@ import platform
 import sys
 from io import BytesIO, StringIO
 from pathlib import Path
-from subprocess import run
+from subprocess import TimeoutExpired, run
 
 import pytest
 
@@ -82,3 +82,31 @@ def test_run(tmp_path, aio, shell, cmd, kwargs, captured, teed):
     if tee:
         assert kwargs["stdout"].getvalue().strip() == teed
         kwargs["stdout"].close()
+
+
+@pytest.mark.parametrize("aio", (False, True), ids=["sync", "async"])
+def test_run_timeout(aio):
+    with pytest.raises(TimeoutExpired):
+        if aio:
+
+            async def _():
+                return await run_tee(["python", "--version"], timeout=0)
+
+            asyncio.run(_())
+        else:
+            run_tee(["python", "--version"], timeout=0)
+
+
+@pytest.mark.parametrize(
+    "encoding,success",
+    (("latin1", False), ("utf-8", True)),
+    ids=["utf8-to-latin-fail", "utf8-to-utf8-pass"],
+)
+def test_run_encoding(encoding, success):
+    cmd = [
+        "python",
+        "-uc",
+        'import sys; sys.stdout.buffer.write("😊".encode())',
+    ]
+    out = run_tee(cmd, text=True, capture_output=True, encoding=encoding)
+    assert (out.stdout == "😊") is success
