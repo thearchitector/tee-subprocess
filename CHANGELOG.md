@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2024-11-25
+
+### Added
+
+- Support the `timeout` argument to restrict the runtime of subprocesses.
+- Support for text decoding using non-UTF8 encodings and non-strict error handling.
+
 ## [1.1.0] - 2024-09-19
 
 ### Added

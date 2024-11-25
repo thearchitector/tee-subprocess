@@ -1,6 +1,6 @@
 [project]
 name = "tee-subprocess"
-version = "1.1.0"
+version = "1.2.0"
 description = "A subprocess replacement with tee support for both synchronous and asynchronous contexts."
 authors = [
     {name = "Elias Gabriel",email = "me@eliasfgabriel.com"},
