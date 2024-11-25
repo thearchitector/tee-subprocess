@@ -1,7 +1,7 @@
 # tee-subprocess
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/thearchitector/tee-subprocess/ci.yaml?label=tests&style=flat-square)
-![PyPI - Downloads](https://img.shields.io/pypi/dw/tee-subprocess?style=flat-square)
+![GitHub Workflow Status](https://raster.shields.io/github/actions/workflow/status/thearchitector/tee-subprocess/ci.yaml?label=tests&style=flat-square)
+![PyPI - Downloads](https://raster.shields.io/pypi/dm/tee-subprocess?style=flat-square)
 
 A subprocess replacement with tee support for both synchronous and asynchronous contexts.
 
