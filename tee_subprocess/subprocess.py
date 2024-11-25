@@ -200,7 +200,7 @@ async def _target(
         )
 
     try:
-        out, err = await asyncio.wait_for(
+        out, err, _ = await asyncio.wait_for(
             asyncio.gather(
                 *(
                     _tee_stream(
@@ -217,14 +217,24 @@ async def _target(
                         encoding,
                         errors,
                     ),
+                    process.wait(),
                 )
             ),
             timeout=timeout,
         )
     except asyncio.TimeoutError as e:
-        raise subprocess.TimeoutExpired(cmd, cast(float, timeout)) from e
+        process.terminate()
 
-    await process.communicate()
+        try:
+            await asyncio.wait_for(process.wait(), timeout=5)
+        except asyncio.TimeoutError:
+            process.kill()
+
+        raise subprocess.TimeoutExpired(cmd, cast(float, timeout)) from e
+    finally:
+        # ensure the subprocess is cleaned up if stopped ungracefully
+        await process.communicate()
+
     retcode: int = cast(int, process.returncode)
 
     if text:
