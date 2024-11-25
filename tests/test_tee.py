@@ -95,3 +95,18 @@ def test_run_timeout(aio):
             asyncio.run(_())
         else:
             run_tee(["python", "--version"], timeout=0)
+
+
+@pytest.mark.parametrize(
+    "encoding,success",
+    (("latin1", False), ("utf-8", True)),
+    ids=["utf8-to-latin-fail", "utf8-to-utf8-pass"],
+)
+def test_run_encoding(encoding, success):
+    cmd = [
+        "python",
+        "-uc",
+        'import sys; sys.stdout.buffer.write("😊".encode())',
+    ]
+    out = run_tee(cmd, text=True, capture_output=True, encoding=encoding)
+    assert (out.stdout == "😊") is success

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import locale
 import os
 import shlex
 import subprocess
@@ -40,7 +41,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 async def _tee_stream(
-    stream: StreamReader, should_capture: bool, sink: IOSink
+    stream: StreamReader, should_capture: bool, sink: IOSink, encoding: str, errors: str
 ) -> Optional[bytes]:
     """
     Read the stream line by line, outputting to the sink if provided while appending to
@@ -60,7 +61,7 @@ async def _tee_stream(
             stdio.append(lineb)
         if sink:
             if isinstance(sink, (TextIOBase, TextIO)):
-                sink.write(lineb.decode())
+                sink.write(lineb.decode(encoding=encoding, errors=errors))
             else:
                 sink.write(lineb)
 
@@ -121,6 +122,8 @@ async def _target(
     stdout: Optional[Union[IOSink, int]] = None,
     stderr: Optional[Union[IOSink, int]] = None,
     text: bool = False,
+    encoding: str = locale.getpreferredencoding(False),
+    errors: str = "utf-8",
     check: bool = False,
     timeout: Optional[float] = None,
     **kwargs: Any,
@@ -201,10 +204,18 @@ async def _target(
             asyncio.gather(
                 *(
                     _tee_stream(
-                        cast("StreamReader", process.stdout), capture_output, out_sink
+                        cast("StreamReader", process.stdout),
+                        capture_output,
+                        out_sink,
+                        encoding,
+                        errors,
                     ),
                     _tee_stream(
-                        cast("StreamReader", process.stderr), capture_output, err_sink
+                        cast("StreamReader", process.stderr),
+                        capture_output,
+                        err_sink,
+                        encoding,
+                        errors,
                     ),
                 )
             ),
@@ -217,8 +228,12 @@ async def _target(
     retcode: int = cast(int, process.returncode)
 
     if text:
-        output: Optional[str] = out.decode() if out else None
-        error: Optional[str] = err.decode() if err else None
+        output: Optional[str] = (
+            out.decode(encoding=encoding, errors=errors) if out else None
+        )
+        error: Optional[str] = (
+            err.decode(encoding=encoding, errors=errors) if err else None
+        )
 
         if check and retcode != 0:
             raise subprocess.CalledProcessError(
@@ -228,8 +243,8 @@ async def _target(
         return subprocess.CompletedProcess(
             cmd,
             returncode=retcode,
-            stdout=out.decode() if out else None,
-            stderr=err.decode() if err else None,
+            stdout=out.decode(encoding=encoding, errors=errors) if out else None,
+            stderr=err.decode(encoding=encoding, errors=errors) if err else None,
         )
 
     if check and retcode != 0:
